@@ -44,7 +44,7 @@ async def remove_bg(file: UploadFile = File(...)):
     except Exception as e:
         return {"error": str(e)}
 
-# Run the FastAPI server
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.getenv("PORT", 8000))  # Render assigns PORT dynamically
+    print(f"🚀 Running on port {port}")  # Debugging log to check port
+    uvicorn.run("remove_bg:app", host="0.0.0.0", port=port)
