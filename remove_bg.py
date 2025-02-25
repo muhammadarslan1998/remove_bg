@@ -45,4 +45,5 @@ async def remove_background(file: UploadFile = File(...)):
 
 # Ensure the app runs on the correct port
 if __name__ == "__main__":
-    uvicorn.run()
+    port = int(os.environ.get("PORT", 10000))  # Render automatically assigns a port
+    uvicorn.run("remove_bg:app", host="0.0.0.0", port=port, reload=True)
