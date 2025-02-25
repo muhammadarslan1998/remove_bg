@@ -1,43 +1,50 @@
 import os
 import shutil
+import uvicorn
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from rembg import remove
 from PIL import Image
+import io
 
-# Initialize FastAPI
+# Create FastAPI instance
 app = FastAPI()
 
-# Define directories
-UPLOAD_DIR = "images"
-OUTPUT_DIR = "output_images"
+# Ensure the uploads directory exists
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Ensure directories exist
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+@app.get("/")
+def home():
+    return {"message": "Background Remover API is running!"}
 
 @app.post("/remove-bg/")
-async def remove_background(file: UploadFile = File(...)):
-    input_path = os.path.join(UPLOAD_DIR, file.filename)
-    output_path = os.path.join(OUTPUT_DIR, f"{os.path.splitext(file.filename)[0]}.png")
-
-    # Save uploaded file
-    with open(input_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
+async def remove_bg(file: UploadFile = File(...)):
     try:
+        # Save the uploaded file temporarily
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
         # Open image and remove background
-        with Image.open(input_path) as img:
-            output_image = remove(img)
-            output_image.save(output_path)
+        with Image.open(file_path) as input_image:
+            output_image = remove(input_image)
 
-        # Delete the uploaded image after processing
-        os.remove(input_path)
+            # Convert image to bytes
+            img_byte_arr = io.BytesIO()
+            output_image.save(img_byte_arr, format="PNG")
+            img_byte_arr.seek(0)
 
-        return FileResponse(output_path, media_type="image/png", filename=f"{os.path.splitext(file.filename)[0]}_no_bg.png")
-    
+        # Delete the original uploaded file after processing
+        os.remove(file_path)
+
+        # Return the processed image
+        return FileResponse(img_byte_arr, media_type="image/png", filename="output.png")
+
     except Exception as e:
-        # Delete the uploaded file if an error occurs
-        if os.path.exists(input_path):
-            os.remove(input_path)
         return {"error": str(e)}
+
+# Run the FastAPI server
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
