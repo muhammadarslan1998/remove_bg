@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from rembg import remove
 from PIL import Image
+import uvicorn  # Import uvicorn explicitly
 
 # Initialize FastAPI
 app = FastAPI()
@@ -42,7 +43,7 @@ async def remove_background(file: UploadFile = File(...)):
             os.remove(input_path)
         return {"error": str(e)}
 
+# Ensure the app runs on the correct port
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # Use Render's PORT or default to 8000
-    import uvicorn
+    port = int(os.getenv("PORT", 8000))  # Get port from Render, default to 8000
     uvicorn.run(app, host="0.0.0.0", port=port)
