@@ -45,4 +45,4 @@ async def remove_background(file: UploadFile = File(...)):
 
 # Ensure the app runs on the correct port
 if __name__ == "__main__":
-    app.run()
+    uvicorn.run()
