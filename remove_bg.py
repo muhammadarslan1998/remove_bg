@@ -1,50 +1,50 @@
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import FileResponse
 import os
 import shutil
 import uvicorn
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse
 from rembg import remove
 from PIL import Image
-import io
+from io import BytesIO
 
-# Create FastAPI instance
 app = FastAPI()
 
-# Ensure the uploads directory exists
 UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+PROCESSED_FOLDER = "processed"
 
-@app.get("/")
-def home():
-    return {"message": "Background Remover API is running!"}
+# Ensure folders exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+
 
 @app.post("/remove-bg/")
 async def remove_bg(file: UploadFile = File(...)):
     try:
-        # Save the uploaded file temporarily
-        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-        with open(file_path, "wb") as buffer:
+        # Save uploaded file temporarily
+        input_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(input_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Open image and remove background
-        with Image.open(file_path) as input_image:
-            output_image = remove(input_image)
+        # Open and process image
+        with open(input_path, "rb") as inp:
+            img = remove(inp.read())
 
-            # Convert image to bytes
-            img_byte_arr = io.BytesIO()
-            output_image.save(img_byte_arr, format="PNG")
-            img_byte_arr.seek(0)
+        # Save output image
+        output_path = os.path.join(PROCESSED_FOLDER, f"no-bg-{file.filename}")
+        with open(output_path, "wb") as out:
+            out.write(img)
 
-        # Delete the original uploaded file after processing
-        os.remove(file_path)
+        # Delete uploaded file after processing
+        os.remove(input_path)
 
-        # Return the processed image
-        return FileResponse(img_byte_arr, media_type="image/png", filename="output.png")
+        # Return processed image as a file response
+        return FileResponse(output_path, media_type="image/png", filename=f"no-bg-{file.filename}")
 
     except Exception as e:
         return {"error": str(e)}
 
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # Render assigns PORT dynamically
-    print(f"🚀 Running on port {port}")  # Debugging log to check port
+    port = int(os.getenv("PORT", 8000))
+    print(f"🚀 Running on port {port}")  
     uvicorn.run("remove_bg:app", host="0.0.0.0", port=port)
