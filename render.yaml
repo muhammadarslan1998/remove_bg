@@ -5,5 +5,4 @@ services:
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
-      pip install onnxruntime==1.14.1  # Manually install the specific version
     startCommand: uvicorn remove_bg:app --host 0.0.0.0 --port $PORT
